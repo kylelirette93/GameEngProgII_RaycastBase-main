@@ -440,13 +440,13 @@ public class PlayerController : MonoBehaviour
         RaycastHit hit;
 
         // Send a raycast.
-        if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out hit, 10f))
+        if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out hit, 10f) && hit.collider.gameObject.layer != ignoreLayer)
         {
             Debug.Log("Hit: " + hit.collider.gameObject.name + Vector3.Distance(mainCamera.transform.position, hit.collider.transform.position));
             Debug.DrawRay(mainCamera.transform.position, mainCamera.transform.forward * 10f, Color.green);
 
             // Check if hit is valid.
-            if (hit.collider.CompareTag("Target") && hit.collider.gameObject.layer != ignoreLayer)
+            if (hit.collider.CompareTag("Target"))
             {
                 // Change material color.
                 var renderer = hit.collider.GetComponent<Renderer>();
