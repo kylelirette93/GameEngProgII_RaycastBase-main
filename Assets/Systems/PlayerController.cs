@@ -11,7 +11,7 @@ public class PlayerController : MonoBehaviour
     // Not using a layermask is simpler, but there are concers about accuracy and performance
     // worse case we can keep the option for groundcheck without a layer mask for quick playtests
     public bool groundCheckLayered = false;
-    
+
     public enum MovementState
     {
         Idle,
@@ -65,9 +65,6 @@ public class PlayerController : MonoBehaviour
     public Transform CameraRoot => cameraRoot;
 
     private CinemachineCamera cinemachineCamera;
-    public LayerMask ignoreLayer;
-
-
 
     private CinemachinePanTilt panTilt;
 
@@ -104,6 +101,11 @@ public class PlayerController : MonoBehaviour
     // Input variables
     private Vector2 lookInput;
     private Vector2 moveInput;
+
+    [SerializeField] private LayerMask ignoreLayer;
+    [SerializeField] private Material highlightMaterial;
+    private Material originalMaterial;
+    private MeshRenderer currentHighlighted;
 
     private void Awake()
     {
@@ -175,7 +177,6 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         handlePlayerMovement();
-
     }
 
     private void LateUpdate()
@@ -301,7 +302,7 @@ public class PlayerController : MonoBehaviour
         // Step 7: Apply final movement
         characterController.Move(movement * Time.deltaTime);
     }
- 
+
     public void HandlePlayerCameraLook()
     {
         if (!lookEnabled) return; // Check if look is enabled 
@@ -371,10 +372,10 @@ public class PlayerController : MonoBehaviour
         else // If not grounded (in the air):
         {
             // Apply standard gravity.
-            velocity.y -= gravity * Time.deltaTime;           
+            velocity.y -= gravity * Time.deltaTime;
         }
     }
-    
+
     private void HandleCrouchTransition()
     {
         bool shouldCrouch = crouchInput == true && currentMovementState != MovementState.Jumping && currentMovementState != MovementState.Falling;
@@ -431,28 +432,35 @@ public class PlayerController : MonoBehaviour
 
     }
 
-    public void CastRay()
+    
+
+    private void ChangeColor()
     {
         Camera mainCamera = Camera.main;
         RaycastHit hit;
-        if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out hit, ignoreLayer))
+
+        // Send a raycast.
+        if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out hit, 10f))
         {
-            if (hit.collider.CompareTag("Target"))
-            {
-                Material material = hit.collider.GetComponent<Renderer>().material;
-                material.color = Random.ColorHSV();
-                Debug.DrawRay(mainCamera.transform.position, mainCamera.transform.forward * 10f, Color.green);
-            }
-            Debug.Log("hit object at: " + hit.collider.gameObject.name + hit.distance);
+            Debug.Log("Hit: " + hit.collider.gameObject.name + Vector3.Distance(mainCamera.transform.position, hit.collider.transform.position));
             Debug.DrawRay(mainCamera.transform.position, mainCamera.transform.forward * 10f, Color.green);
+
+            // Check if hit is valid.
+            if (hit.collider.CompareTag("Target") && hit.collider.gameObject.layer != ignoreLayer)
+            {
+                // Change material color.
+                var renderer = hit.collider.GetComponent<Renderer>();
+                renderer.material.color = Random.ColorHSV();
+            }
         }
         else
         {
             Debug.DrawRay(mainCamera.transform.position, mainCamera.transform.forward * 10f, Color.red);
-            Debug.Log("Did not hit.");
+            Debug.Log("Not hitting anything valid.");
         }
     }
 
+  
 
     #region Helper Methods
 
@@ -635,7 +643,7 @@ public class PlayerController : MonoBehaviour
         inputManager.CrouchStartedEvent += CrouchInputStarted;
         inputManager.CrouchCanceledEvent += CrouchInputCanceled;
 
-        inputManager.RaycastEvent += CastRay;
+        inputManager.RaycastEvent += ChangeColor;
     }
 
     private void OnDisable()
@@ -651,7 +659,7 @@ public class PlayerController : MonoBehaviour
         inputManager.CrouchStartedEvent -= CrouchInputStarted;
         inputManager.CrouchCanceledEvent -= CrouchInputCanceled;
 
-        inputManager.RaycastEvent -= CastRay;
+        inputManager.RaycastEvent -= ChangeColor;
     }
 
     
